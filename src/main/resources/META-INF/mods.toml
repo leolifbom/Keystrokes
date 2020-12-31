@@ -1,0 +1,17 @@
+modLoader="javafml"
+loaderVersion="[35,)"
+license="All rights reserved"
+[[mods]]
+modId="keystrokesmod"
+version="1.0"
+displayName="Array's Keystrokes Mod"
+logoFile="examplemod.png"
+authors="arrayofc"
+description='''
+Array's Keystrokes Mod is a client-sided utility mod that shows the current keys pressed and the CPS
+(clicks per second) of your mouse.
+
+It is customizable with position and color by opening the settings menu with /keystrokes.
+
+You can also add custom overlay HUDs with custom keybinds.
+'''
