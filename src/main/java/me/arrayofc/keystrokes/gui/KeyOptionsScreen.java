@@ -1,9 +1,11 @@
 package me.arrayofc.keystrokes.gui;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.mojang.blaze3d.matrix.MatrixStack;
 import com.mojang.datafixers.util.Pair;
 import me.arrayofc.keystrokes.Keystrokes;
+import me.arrayofc.keystrokes.color.ColorTab;
 import me.arrayofc.keystrokes.hud.OverlayHud;
 import me.arrayofc.keystrokes.util.Strings;
 import me.arrayofc.keystrokes.util.Translations;
@@ -20,6 +22,7 @@ import net.minecraft.util.text.TextFormatting;
 
 import javax.annotation.Nonnull;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -34,7 +37,7 @@ public class KeyOptionsScreen extends Screen {
     private int yOffset;
 
     // The overlays with their Y position and corresponding button.
-    private final Map<OverlayHud, Pair<Integer, Button>> overlays = Maps.newHashMap();
+    private final Map<OverlayHud, Pair<Integer, List<Button>>> overlays = Maps.newHashMap();
 
     public KeyOptionsScreen(Keystrokes keystrokes, Screen lastScreenIn) {
         super(Translations.KEY_SCREEN_TITLE);
@@ -45,10 +48,7 @@ public class KeyOptionsScreen extends Screen {
 
     @Override
     protected void init() {
-        super.addButton(new Button(super.width / 2 - 75, super.height - 28, 150, 20, DialogTexts.GUI_DONE, press -> {
-            Minecraft.getInstance().displayGuiScreen(this.lastScreen);
-            this.keystrokes.getColorManager().updateConfig();
-        }));
+        super.addButton(new Button(super.width / 2 - 75, super.height - 28, 150, 20, DialogTexts.GUI_DONE, press -> Minecraft.getInstance().displayGuiScreen(this.lastScreen)));
 
         this.yOffset = 60;
 
@@ -58,7 +58,7 @@ public class KeyOptionsScreen extends Screen {
             this.yOffset += 40;
         }
 
-        // add the "new binding" button if there's less than 5 overlays reigstered
+        // add the "new binding" button if there's less than 5 overlays registered
         if (this.keystrokes.getHudManager().getOverlayHuds().size() < 5) {
             this.yOffset += 30;
 
@@ -77,18 +77,31 @@ public class KeyOptionsScreen extends Screen {
      * @param yOffset   The Y position where this row can be placed on.
      */
     public void initOptionsRow(OverlayHud hud, int yOffset) {
-        this.overlays.put(hud, Pair.of(yOffset, super.addButton(new Button(super.width / 2 + 90, yOffset, 70, 20, Translations.KEY_SCREEN_DELETE_OVERLAY_LABEL.copyRaw().setStyle(Style.EMPTY.setColor(Color.fromTextFormatting(TextFormatting.RED))), press -> {
+        List<Button> buttons = Lists.newArrayList();
+        buttons.add(super.addButton(new Button(super.width / 2 + 90, yOffset, 70, 20, Translations.KEY_SCREEN_DELETE_OVERLAY_LABEL.copyRaw().setStyle(Style.EMPTY.setColor(Color.fromTextFormatting(TextFormatting.RED))), press -> {
             if (hud.getName().equalsIgnoreCase("default")) return;
             this.deleteOverlay(hud);
         }, (p_onTooltip_1_, p_onTooltip_2_, p_onTooltip_3_, p_onTooltip_4_) -> {
             if (p_onTooltip_1_.active) {
                 this.renderTooltip(p_onTooltip_2_, Minecraft.getInstance().fontRenderer.trimStringToWidth(Translations.KEY_SCREEN_DELETE_OVERLAY_TOOLTIP, Math.max(this.width / 2 - 43, 170)), p_onTooltip_3_, p_onTooltip_4_);
             }
-        }))));
+        })));
+
+        buttons.add(super.addButton(new Button(super.width / 2, yOffset, 70, 20, Translations.KEY_SCREEN_COLOR_OVERLAY_LABEL, press -> {
+            MainConfigScreen.currentColorOptionsScreen = new ColorOptionsConfigScreen(this.keystrokes, this, ColorTab.TEXT, hud);
+            Minecraft.getInstance().displayGuiScreen(MainConfigScreen.currentColorOptionsScreen);
+
+        }, (p_onTooltip_1_, p_onTooltip_2_, p_onTooltip_3_, p_onTooltip_4_) -> {
+            if (p_onTooltip_1_.active) {
+                this.renderTooltip(p_onTooltip_2_, Minecraft.getInstance().fontRenderer.trimStringToWidth(Translations.KEY_SCREEN_COLOR_OVERLAY_TOOLTIP, Math.max(this.width / 2 - 43, 170)), p_onTooltip_3_, p_onTooltip_4_);
+            }
+        })));
+
+        this.overlays.put(hud, Pair.of(yOffset, buttons));
 
         // we don't want users to be able to delete the default one
         if (hud.getName().equalsIgnoreCase("default")) {
-            this.overlays.get(hud).getSecond().active = false;
+            this.overlays.get(hud).getSecond().get(0).active = false;
         }
     }
 
@@ -98,7 +111,7 @@ public class KeyOptionsScreen extends Screen {
      * Deletes the specified overlay from the mod.
      */
     private void deleteOverlay(OverlayHud overlayHud) {
-        this.buttons.remove(this.overlays.remove(overlayHud).getSecond());
+        this.overlays.remove(overlayHud).getSecond().forEach(this.buttons::remove);
         this.keystrokes.getHudManager().deleteOverlay(overlayHud);
         Minecraft.getInstance().displayGuiScreen(new KeyOptionsScreen(this.keystrokes, this.lastScreen));
     }

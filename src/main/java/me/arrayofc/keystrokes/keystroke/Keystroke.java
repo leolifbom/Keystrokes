@@ -8,7 +8,7 @@ import me.arrayofc.keystrokes.KeystrokesConfig;
 import me.arrayofc.keystrokes.color.ColorManager;
 import me.arrayofc.keystrokes.color.ColorTab;
 import me.arrayofc.keystrokes.gui.MainConfigScreen;
-import me.arrayofc.keystrokes.hud.HudManager;
+import me.arrayofc.keystrokes.hud.OverlayHud;
 import me.arrayofc.keystrokes.util.Strings;
 import me.arrayofc.keystrokes.util.Translations;
 import net.minecraft.client.Minecraft;
@@ -53,21 +53,47 @@ public class Keystroke {
     // Whether or not this keystroke is apart of a default overlay HUD
     private final boolean isDefault;
 
+    // The overlay that this keystroke belongs to
+    private String owningOverlay;
+
     public Keystroke(KeyBinding keyBinding, KeyType type, boolean isDefault) {
         this.keyBindingDescription = keyBinding == null ? "BARRIER" : keyBinding.getKeyDescription();
         this.keyType = type;
-        this.height = DEFAULT_KEY_SCALE.get(this.keyType).getLeft() * KeystrokesConfig.HUD_SCALE_MULTIPLIER.get();
+        this.height = DEFAULT_KEY_SCALE.get(this.keyType).getLeft();
 
         this.isDefault = isDefault;
 
         if (this.isDefault || this.getTextContent().length() <= 3) {
-            this.width = DEFAULT_KEY_SCALE.get(this.keyType).getRight() * KeystrokesConfig.HUD_SCALE_MULTIPLIER.get();
+            this.width = DEFAULT_KEY_SCALE.get(this.keyType).getRight();
 
         } else {
             // if it's not a default key (WASD), the text for this keystroke could be much longer, e.g. "Left Shift".
-            this.textWidth = Minecraft.getInstance().fontRenderer.getStringWidth(this.getTextContent()) * HudManager.getScale();
-            this.width = this.textWidth + 5 * KeystrokesConfig.HUD_SCALE_MULTIPLIER.get();
+            this.textWidth = Minecraft.getInstance().fontRenderer.getStringWidth(this.getTextContent());
+            this.width = this.textWidth + 5;
         }
+    }
+
+    /**
+     * Get the overlay to which this keystroke is registered to.
+     */
+    @Nullable
+    public OverlayHud getOwningOverlay() {
+        return Keystrokes.getInstance().getHudManager().getOverlayHuds().stream().filter(hud -> hud.getName().equals(this.owningOverlay))
+                .findFirst().orElse(null);
+    }
+
+    /**
+     * Sets the owning overlay for this keystroke.
+     */
+    public void setOwningOverlay(String owningOverlay) {
+        this.owningOverlay = owningOverlay;
+    }
+
+    /**
+     * Returns the scale of the overlay this keystroke is registered to.
+     */
+    public double getScale() {
+        return this.getOwningOverlay() == null ? 1 : this.getOwningOverlay().getScale();
     }
 
     /**
@@ -103,7 +129,7 @@ public class Keystroke {
      * @return The updated text width.
      */
     public double updateTextWidth() {
-        return this.textWidth = Minecraft.getInstance().fontRenderer.getStringWidth(this.getTextContent()) * HudManager.getScale();
+        return this.textWidth = Minecraft.getInstance().fontRenderer.getStringWidth(this.getTextContent()) * this.getScale();
     }
 
     /**
@@ -159,7 +185,7 @@ public class Keystroke {
     /**
      * Renders the keystroke object.
      */
-    public void render() {
+    public void render(OverlayHud hud) {
         // Render the HUD background
         GL11.glEnable(GL11.GL_BLEND);
         GL11.glDisable(GL11.GL_TEXTURE_2D);
@@ -169,7 +195,7 @@ public class Keystroke {
         if (this.isPressed() || MainConfigScreen.currentColorOptionsScreen != null && MainConfigScreen.currentColorOptionsScreen.currentTab == ColorTab.CLICK)
             ColorManager.glColor(Color.LIGHT_GRAY.getRGB(), 0.6f);
         else
-            ColorManager.glColor(colorManager.getHudBackgroundColor(), 0.6f);
+            ColorManager.glColor(colorManager.getHudBackgroundColor(hud), 0.6f);
         GL11.glVertex3d(0.0, this.height, 0.0);
         GL11.glVertex3d(this.width, this.height, 0.0);
         GL11.glVertex3d(this.width, 0.0, 0.0);
@@ -180,24 +206,24 @@ public class Keystroke {
         GL11.glEnable(GL11.GL_TEXTURE_2D);
 
         // Render the text on top of the background
-        this.renderText();
+        this.renderText(hud);
     }
 
     /**
      * Renders the text for this keystroke.
      */
-    private void renderText() {
+    private void renderText(OverlayHud hud) {
         if (this.keyType == KeyType.KEY) {
-            this.renderKeyText(this.getTextContent());
+            this.renderKeyText(this.getTextContent(), hud);
 
         } else if (this.keyType == KeyType.MOUSE_LEFT) {
-            this.renderMouse(true);
+            this.renderMouse(true, hud);
 
         } else if (this.keyType == KeyType.MOUSE_RIGHT) {
-            this.renderMouse(false);
+            this.renderMouse(false, hud);
 
         } else if (this.keyType == KeyType.SPACEBAR) {
-            this.renderSpacebar();
+            this.renderSpacebar(hud);
         }
     }
 
@@ -206,22 +232,22 @@ public class Keystroke {
      *
      * @param text Text to render.
      */
-    private void renderKeyText(String text) {
+    private void renderKeyText(String text, OverlayHud hud) {
         if (this.getKeyBinding() == null) return;
 
         final FontRenderer fontRenderer = Minecraft.getInstance().fontRenderer;
 
         // the centered x & y text position
-        float x = (float) ((this.width - this.updateTextWidth()) / (2 * HudManager.getScale()));
-        float y = (float) ((this.height - Minecraft.getInstance().fontRenderer.FONT_HEIGHT * HudManager.getScale()) / (2 * HudManager.getScale()));
+        float x = (float) ((this.width - this.updateTextWidth()) / (2 * hud.getScale()));
+        float y = (float) ((this.height - Minecraft.getInstance().fontRenderer.FONT_HEIGHT * hud.getScale()) / (2 * hud.getScale()));
 
         GlStateManager.pushMatrix();
-        GlStateManager.scaled(HudManager.getScale(), HudManager.getScale(), 0);
+        GlStateManager.scaled(hud.getScale(), hud.getScale(), 0);
 
         if (KeystrokesConfig.TEXT_SHADOW.get()) {
-            fontRenderer.drawStringWithShadow(new MatrixStack(), text, x, y, this.isPressed() ? colorManager.getHudClickColor(x) : colorManager.getHudTextColor(x));
+            fontRenderer.drawStringWithShadow(new MatrixStack(), text, x, y, this.isPressed() ? colorManager.getHudClickColor(hud, x) : colorManager.getHudTextColor(hud, x));
         } else {
-            fontRenderer.drawString(new MatrixStack(), text, x, y, this.isPressed() ? colorManager.getHudClickColor(x) : colorManager.getHudTextColor(x));
+            fontRenderer.drawString(new MatrixStack(), text, x, y, this.isPressed() ? colorManager.getHudClickColor(hud, x) : colorManager.getHudTextColor(hud, x));
         }
 
         GlStateManager.popMatrix();
@@ -232,12 +258,12 @@ public class Keystroke {
      *
      * @param left True for left mouse button, false for right.
      */
-    private void renderMouse(boolean left) {
+    private void renderMouse(boolean left, OverlayHud hud) {
         final KeystrokesConfig.CpsType type = KeystrokesConfig.SHOW_CPS.get();
 
         if (type == KeystrokesConfig.CpsType.NEVER || type == KeystrokesConfig.CpsType.ON_CLICK) {
             // if this is the case, we won't have to render two lines of text
-            this.renderKeyText(this.getOnClickText(left));
+            this.renderKeyText(this.getOnClickText(left), hud);
 
         } else {
             final FontRenderer font = Minecraft.getInstance().fontRenderer;
@@ -246,25 +272,25 @@ public class Keystroke {
             final String secondRow = Keystrokes.getInstance().getKeystrokeRegistry().getCPS(left) + " CPS";
 
             // the text width of the 1st and 2nd row
-            double firstRowTextWidth = font.getStringWidth(firstRow) * HudManager.getScale();
-            double secondRowTextWidth = font.getStringWidth(secondRow) * HudManager.getScale();
+            double firstRowTextWidth = font.getStringWidth(firstRow) * hud.getScale();
+            double secondRowTextWidth = font.getStringWidth(secondRow) * hud.getScale();
 
             // the centered x text position for 1st and 2nd row
-            float firstRowX = (float) ((this.width - firstRowTextWidth) / (2 * HudManager.getScale()));
-            float secondRowX = (float) ((this.width - secondRowTextWidth) / (2 * HudManager.getScale()));
+            float firstRowX = (float) ((this.width - firstRowTextWidth) / (2 * hud.getScale()));
+            float secondRowX = (float) ((this.width - secondRowTextWidth) / (2 * hud.getScale()));
 
             // the centered y position for both text rows, offset is +/- 5 for each row
-            float y = (float) ((this.height - Minecraft.getInstance().fontRenderer.FONT_HEIGHT * HudManager.getScale()) / (2 * HudManager.getScale()));
+            float y = (float) ((this.height - Minecraft.getInstance().fontRenderer.FONT_HEIGHT * hud.getScale()) / (2 * hud.getScale()));
 
             GlStateManager.pushMatrix();
-            GlStateManager.scaled(HudManager.getScale(), HudManager.getScale(), 0);
+            GlStateManager.scaled(this.getScale(), this.getScale(), 0);
 
             if (KeystrokesConfig.TEXT_SHADOW.get()) {
-                font.drawStringWithShadow(new MatrixStack(), firstRow, firstRowX, y - 5, this.isPressed() ? colorManager.getHudClickColor(firstRowX) : colorManager.getHudTextColor(firstRowX));
-                font.drawStringWithShadow(new MatrixStack(), secondRow, secondRowX, y + 5, this.isPressed() ? colorManager.getHudClickColor(secondRowX) : colorManager.getHudTextColor(secondRowX));
+                font.drawStringWithShadow(new MatrixStack(), firstRow, firstRowX, y - 5, this.isPressed() ? colorManager.getHudClickColor(hud, firstRowX) : colorManager.getHudTextColor(hud, firstRowX));
+                font.drawStringWithShadow(new MatrixStack(), secondRow, secondRowX, y + 5, this.isPressed() ? colorManager.getHudClickColor(hud, secondRowX) : colorManager.getHudTextColor(hud, secondRowX));
             } else {
-                font.drawString(new MatrixStack(), firstRow, firstRowX, y - 5, this.isPressed() ? colorManager.getHudClickColor(firstRowX) : colorManager.getHudTextColor(firstRowX));
-                font.drawString(new MatrixStack(), secondRow, secondRowX, y + 5, this.isPressed() ? colorManager.getHudClickColor(secondRowX) : colorManager.getHudTextColor(secondRowX));
+                font.drawString(new MatrixStack(), firstRow, firstRowX, y - 5, this.isPressed() ? colorManager.getHudClickColor(hud, firstRowX) : colorManager.getHudTextColor(hud, firstRowX));
+                font.drawString(new MatrixStack(), secondRow, secondRowX, y + 5, this.isPressed() ? colorManager.getHudClickColor(hud, secondRowX) : colorManager.getHudTextColor(hud, secondRowX));
             }
 
             GlStateManager.popMatrix();
@@ -274,7 +300,7 @@ public class Keystroke {
     /**
      * Renders the space bar rectangle.
      */
-    private void renderSpacebar() {
+    private void renderSpacebar(OverlayHud hud) {
         final double xMin = this.width * 0.25, yMin = this.height / 2 - 1, xMax = this.width * 0.75, yMax = this.height / 2 + 1;
         GL11.glEnable(GL11.GL_BLEND);
         GL11.glDisable(GL11.GL_TEXTURE_2D);
@@ -282,12 +308,12 @@ public class Keystroke {
 
         // quads requires 4 vertices to be passed, one for each corner
         GL11.glBegin(GL11.GL_QUADS);
-        ColorManager.glColor(this.isPressed() ? colorManager.getHudClickColor(xMin) : colorManager.getHudTextColor(xMin), -1);
+        ColorManager.glColor(this.isPressed() ? colorManager.getHudClickColor(hud, xMin) : colorManager.getHudTextColor(hud, xMin), -1);
         GL11.glVertex3d(xMin, yMax, 0.0);
-        ColorManager.glColor(this.isPressed() ? colorManager.getHudClickColor(xMax) : colorManager.getHudTextColor(xMax), -1);
+        ColorManager.glColor(this.isPressed() ? colorManager.getHudClickColor(hud, xMax) : colorManager.getHudTextColor(hud, xMax), -1);
         GL11.glVertex3d(xMax, yMax, 0.0);
         GL11.glVertex3d(xMax, yMin, 0.0);
-        ColorManager.glColor(this.isPressed() ? colorManager.getHudClickColor(xMin) : colorManager.getHudTextColor(xMin), -1);
+        ColorManager.glColor(this.isPressed() ? colorManager.getHudClickColor(hud, xMin) : colorManager.getHudTextColor(hud, xMin), -1);
         GL11.glVertex3d(xMin, yMin, 0.0);
 
         GL11.glEnd();
@@ -391,7 +417,7 @@ public class Keystroke {
          * Returns the height gap for the next row in the HUD.
          */
         public double getRowHeightOffset() {
-            return Arrays.stream(this.keystrokes).findFirst().map(keystroke -> keystroke.getHeight() + 1.5 * HudManager.getScale())
+            return Arrays.stream(this.keystrokes).findFirst().map(keystroke -> keystroke.getHeight() + 1.5 * keystroke.getScale())
                     .orElseThrow(() -> new RuntimeException("Keys on row misses height"));
         }
 

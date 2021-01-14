@@ -1,9 +1,14 @@
 package me.arrayofc.keystrokes.hud;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import me.arrayofc.keystrokes.color.ColorTab;
 import me.arrayofc.keystrokes.keystroke.Keystroke;
 
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * An overlay hud can be placed on the screen at a set location.
@@ -18,11 +23,17 @@ public class OverlayHud {
     // A map containing the rows for the HUD
     private final LinkedHashMap<Keystroke.Row.RowType, List<Keystroke.Row>> rowMap;
 
+    // The colors for this overlay hud
+    private final Map<ColorTab, int[]> rgbValues;
+
     // Whether or not we're currently dragging the HUD
     private boolean dragMode = false;
 
     // The current location of the HUD on the screen
     public HudPosition hudPosition;
+
+    // The scaling for this overlay hud
+    private double scale;
 
     // The last appropriate X and Y position this HUD was located at
     private int lastX, lastY;
@@ -33,7 +44,17 @@ public class OverlayHud {
     public OverlayHud(String name, LinkedHashMap<Keystroke.Row.RowType, List<Keystroke.Row>> rowMap, HudPosition hudPosition, boolean custom) {
         this.name = name;
         this.rowMap = rowMap;
+        this.rgbValues = Maps.newHashMap();
+        this.rgbValues.put(ColorTab.TEXT, new int[]{255, 255, 255});
+        this.rgbValues.put(ColorTab.CLICK, new int[]{71, 71, 71});
+        this.rgbValues.put(ColorTab.HUD, new int[]{48, 48, 48});
+
         this.hudPosition = hudPosition;
+        this.scale = 1;
+
+        this.lastX = hudPosition.getX();
+        this.lastY = hudPosition.getY();
+
         this.custom = custom;
     }
 
@@ -105,5 +126,41 @@ public class OverlayHud {
      */
     public int getLastY() {
         return this.lastY;
+    }
+
+    /**
+     * Returns the R, G & B values for this overlay hud.
+     */
+    public Map<ColorTab, int[]> getRgbValues() {
+        return this.rgbValues;
+    }
+
+    /**
+     * Returns the current scaling of this overlay hud.
+     */
+    public double getScale() {
+        return this.scale;
+    }
+
+    /**
+     * Sets the scaling for this overlay hud.
+     */
+    public void setScale(double scale) {
+        this.scale = scale;
+    }
+
+    /**
+     * Returns all the registered keystrokes for this overlay hud.
+     */
+    public List<Keystroke> getAllKeystrokes() {
+        List<Keystroke> keystrokes = Lists.newArrayList();
+
+        for (Map.Entry<Keystroke.Row.RowType, List<Keystroke.Row>> entry : this.rowMap.entrySet()) {
+            for (Keystroke.Row row : entry.getValue()) {
+                keystrokes.addAll(Arrays.asList(row.getKeystrokes()));
+            }
+        }
+
+        return keystrokes;
     }
 }

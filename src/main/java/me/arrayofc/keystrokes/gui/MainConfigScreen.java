@@ -3,7 +3,6 @@ package me.arrayofc.keystrokes.gui;
 import com.mojang.blaze3d.matrix.MatrixStack;
 import me.arrayofc.keystrokes.Keystrokes;
 import me.arrayofc.keystrokes.KeystrokesConfig;
-import me.arrayofc.keystrokes.color.ColorTab;
 import me.arrayofc.keystrokes.util.Translations;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.DialogTexts;
@@ -68,12 +67,12 @@ public class MainConfigScreen extends AbstractConfigScreen {
 
         }, () -> Collections.singletonList(Translations.HUD_TYPE_TOOLTIP));
 
-        // Color Options Button
-        this.createSettingButton(this.width / 2 + 5, 150, 150, 20, Translations.COLOR_LABEL, null, press -> {
-            currentColorOptionsScreen = new ColorOptionsConfigScreen(this.keystrokes, this, ColorTab.TEXT);
-            this.minecraft.displayGuiScreen(currentColorOptionsScreen);
+        // Sync Colors
+        this.createSettingButton(this.width / 2 + 5, 150, 150, 20, Translations.COLOR_SYNC_LABEL, KeystrokesConfig.SYNC_COLORS, press -> {
+            KeystrokesConfig.SYNC_COLORS.set(!KeystrokesConfig.SYNC_COLORS.get());
+            this.updateButton(Translations.COLOR_SYNC_LABEL, KeystrokesConfig.SYNC_COLORS);
 
-        }, () -> Collections.singletonList(Translations.COLOR_TOOLTIP));
+        }, () -> Collections.singletonList(Translations.COLOR_SYNC_TOOLTIP));
 
         // Chroma Mode Button
         this.createSettingButton(this.width / 2 - 155, 180, 150, 20, Translations.RAINBOW_LABEL, KeystrokesConfig.RAINBOW, press -> {

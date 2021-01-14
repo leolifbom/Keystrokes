@@ -21,7 +21,7 @@ public class HudPosition {
     public HudPosition() {
         // Height is 1 until rendered as the user can disable
         // certain components of the HUD, giving different height
-        this(5, 5, (int) (75 * HudManager.getScale()), 1);
+        this(5, 5, 75, 1);
     }
 
     /**

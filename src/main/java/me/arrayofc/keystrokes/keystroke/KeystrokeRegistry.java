@@ -3,6 +3,7 @@ package me.arrayofc.keystrokes.keystroke;
 import com.google.common.collect.Maps;
 import me.arrayofc.keystrokes.Keystrokes;
 import me.arrayofc.keystrokes.hud.HudPosition;
+import me.arrayofc.keystrokes.hud.OverlayHud;
 import me.arrayofc.keystrokes.util.MouseHandler;
 import me.arrayofc.keystrokes.util.Strings;
 import net.minecraft.client.GameSettings;
@@ -44,7 +45,7 @@ public class KeystrokeRegistry {
     /**
      * Registers the default keystrokes and registers the default overlay HUD.
      */
-    public void initializeDefault() {
+    public OverlayHud initializeDefault() {
         LinkedHashMap<Keystroke.Row.RowType, List<Keystroke.Row>> rows = new Builder()
                 .newSection(Keystroke.Row.RowType.KEY)
                     .addRowWithKeystrokes(Arrays.asList(
@@ -64,7 +65,7 @@ public class KeystrokeRegistry {
                             new Keystroke(this.settings.keyBindJump, Keystroke.KeyType.SPACEBAR, true)))
                 .build();
 
-        this.keystrokes.getHudManager().registerOverlay("default", rows, new HudPosition(), false);
+        return this.keystrokes.getHudManager().registerOverlay("default", rows, new HudPosition(), false);
     }
 
     /**

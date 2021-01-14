@@ -15,6 +15,9 @@ The output jar can be found in the `build/libs` directory.
 
 To use the mod, place the built jar in your `.minecraft/mods` directory, and launch Minecraft with a Forge 1.16.4 installation.
 
+### When fetching a new update
+Make sure to delete the previous build inside the `.minecraft/mods` folder, and place the new compiled jar. If your game unexpectedly crashes on startup or during world loading, delete the mod data found in `.minecraft/config/keystroke-overlays` and reattempt.
+
 **Requirements**
 
 * Java 8+ JDK

@@ -6,6 +6,7 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import me.arrayofc.keystrokes.Keystrokes;
 import me.arrayofc.keystrokes.KeystrokesConfig;
 import me.arrayofc.keystrokes.color.ColorTab;
+import me.arrayofc.keystrokes.hud.OverlayHud;
 import me.arrayofc.keystrokes.util.Translations;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.DialogTexts;
@@ -52,7 +53,10 @@ public class ColorOptionsConfigScreen extends Screen {
     // The current tab the user is in
     public ColorTab currentTab;
 
-    public ColorOptionsConfigScreen(Keystrokes keystrokes, Screen lastScreenIn, ColorTab current) {
+    // The overlay hud we're changing colors for
+    public OverlayHud overlay;
+
+    public ColorOptionsConfigScreen(Keystrokes keystrokes, Screen lastScreenIn, ColorTab current, OverlayHud hud) {
         super(Translations.COLOR_SCREEN_TITLE);
         this.keystrokes = keystrokes;
         this.lastScreen = lastScreenIn;
@@ -66,6 +70,7 @@ public class ColorOptionsConfigScreen extends Screen {
 
         // default tab is text
         this.currentTab = current;
+        this.overlay = hud;
     }
 
     /**
@@ -77,7 +82,7 @@ public class ColorOptionsConfigScreen extends Screen {
         if (currentTab == newTab) return;
         currentTab = newTab;
 
-        MainConfigScreen.currentColorOptionsScreen = new ColorOptionsConfigScreen(this.keystrokes, this.lastScreen, newTab);
+        MainConfigScreen.currentColorOptionsScreen = new ColorOptionsConfigScreen(this.keystrokes, this.lastScreen, newTab, this.overlay);
         Minecraft.getInstance().displayGuiScreen(MainConfigScreen.currentColorOptionsScreen);
     }
 
@@ -122,7 +127,7 @@ public class ColorOptionsConfigScreen extends Screen {
 
         super.addButton(new Button(super.width / 2 - 75, super.height - 28, 150, 20, DialogTexts.GUI_DONE, (press) -> {
             Minecraft.getInstance().displayGuiScreen(this.lastScreen);
-            this.keystrokes.getColorManager().updateConfig();
+            this.keystrokes.getHudManager().saveOverlay(this.overlay);
         }));
     }
 
@@ -146,7 +151,7 @@ public class ColorOptionsConfigScreen extends Screen {
         Minecraft.getInstance().keyboardListener.enableRepeatEvents(true);
         this.textField = new TextFieldWidget(this.font, xIn, yIn, width, height, new StringTextComponent(""));
         this.textField.setMaxStringLength(7); // only allow 7 chars in the text field
-        this.textField.setText(this.keystrokes.getColorManager().getAsHexadecimal(this.currentTab));
+        this.textField.setText(this.keystrokes.getColorManager().getAsHexadecimal(this.overlay, this.currentTab));
         this.textField.setTextColor(Color.WHITE.getRGB());
         this.textField.setResponder(s -> {
             // normally this consumer would be invoked at any time the color sliders were
@@ -161,12 +166,12 @@ public class ColorOptionsConfigScreen extends Screen {
                 try {
                     final Color color = Color.decode(text);
 
-                    int[] colors = this.keystrokes.getColorManager().getRgbValues(this.currentTab);
+                    int[] colors = this.keystrokes.getColorManager().getRgbValues(this.overlay, this.currentTab);
 
                     // if this hex code isn't the same as the current selected color we'll update
                     if (colors[0] != color.getRed() || colors[1] != color.getGreen() || colors[2] != color.getBlue()) {
-                        this.keystrokes.getColorManager().set(this.currentTab, Arrays.asList(color.getRed(), color.getGreen(), color.getBlue()));
-                        Minecraft.getInstance().displayGuiScreen(new ColorOptionsConfigScreen(this.keystrokes, this.lastScreen, this.currentTab));
+                        this.keystrokes.getColorManager().set(this.overlay, this.currentTab, Arrays.asList(color.getRed(), color.getGreen(), color.getBlue()));
+                        Minecraft.getInstance().displayGuiScreen(new ColorOptionsConfigScreen(this.keystrokes, this.lastScreen, this.currentTab, this.overlay));
                     }
                 } catch (NumberFormatException e) {
                     // Since newer versions there's system toast alerts, why not display one as a notice for the user.
@@ -207,7 +212,11 @@ public class ColorOptionsConfigScreen extends Screen {
         // Show info text if Rainbow mode is on and user is changing text color
         if (KeystrokesConfig.RAINBOW.get() && (this.currentTab == ColorTab.TEXT || this.currentTab == ColorTab.CLICK)) {
             drawCenteredString(matrixStack, this.font, (this.currentTab == ColorTab.TEXT ? Translations.COLOR_SCREEN_TEXT_LABEL : Translations.COLOR_SCREEN_CLICK_LABEL).copyRaw().appendString(" ")
-                    .append(Translations.COLOR_SCREEN_NOT_SHOW), this.width / 2, 260, 16777215);
+                    .append(Translations.COLOR_SCREEN_NOT_SHOW_TITLE), this.width / 2, 260, 16777215);
+
+            // if color sync is enabled, and they're changing colors for a custom overlay, inform that the color wont be shown
+        } else if (KeystrokesConfig.SYNC_COLORS.get() && this.overlay.isCustom()) {
+            drawCenteredString(matrixStack, this.font, Translations.COLOR_SCREEN_SYNC_ENABLED_TITLE, this.width / 2, 260, 16777215);
         }
 
         // super call necessary to render the buttons
@@ -219,7 +228,7 @@ public class ColorOptionsConfigScreen extends Screen {
      */
     private void renderColorPreview(MatrixStack matrixStack) {
         fill(matrixStack, this.offsetX + 9, this.offsetY + 18, this.offsetX + 9 + 234, this.offsetY + 18 + 113,
-                this.keystrokes.getColorManager().createColor(this.currentTab).getRGB());
+                this.keystrokes.getColorManager().createColor(this.overlay, this.currentTab).getRGB());
     }
 
     /**
@@ -245,17 +254,17 @@ public class ColorOptionsConfigScreen extends Screen {
      */
     public SliderPercentageOption createRgbControl(int type) {
         return new SliderPercentageOption("", 0.0D, 255D, 1F,
-                (s) -> (double) (this.keystrokes.getColorManager().getRgbValues(this.currentTab)[type]),
+                (s) -> (double) (this.keystrokes.getColorManager().getRgbValues(this.overlay, this.currentTab)[type]),
                 (s, o) -> {
                     final int value = MathHelper.clamp(o.intValue(), 0, 255);
-                    this.keystrokes.getColorManager().set(this.currentTab, type, value);
+                    this.keystrokes.getColorManager().set(this.overlay, this.currentTab, type, value);
 
                     // Also update HEX text field when colors have been changed
                     if (this.textField != null) {
-                        this.textField.setText(this.keystrokes.getColorManager().getAsHexadecimal(this.currentTab));
+                        this.textField.setText(this.keystrokes.getColorManager().getAsHexadecimal(this.overlay, this.currentTab));
                     }
                 }, (s, o) -> new StringTextComponent((type == 0 ? "Red" : type == 1 ? "Green" : "Blue")
-                + ": " + this.keystrokes.getColorManager().getRgbValues(this.currentTab)[type]));
+                + ": " + this.keystrokes.getColorManager().getRgbValues(this.overlay, this.currentTab)[type]));
     }
 
     @Override
@@ -281,6 +290,6 @@ public class ColorOptionsConfigScreen extends Screen {
     public void onClose() {
         Minecraft.getInstance().keyboardListener.enableRepeatEvents(false);
         this.currentTab = ColorTab.TEXT;
-        this.keystrokes.getColorManager().updateConfig();
+        this.keystrokes.getHudManager().saveOverlay(this.overlay);
     }
 }

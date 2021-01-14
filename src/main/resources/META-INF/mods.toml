@@ -3,7 +3,7 @@ loaderVersion="[35,)"
 license="All rights reserved"
 [[mods]]
 modId="keystrokesmod"
-version="1.0"
+version="1.1"
 displayName="Array's Keystrokes Mod"
 logoFile="examplemod.png"
 authors="arrayofc"

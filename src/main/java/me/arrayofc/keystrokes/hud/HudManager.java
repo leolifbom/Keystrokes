@@ -3,7 +3,6 @@ package me.arrayofc.keystrokes.hud;
 import com.google.common.collect.Lists;
 import com.google.gson.stream.JsonReader;
 import me.arrayofc.keystrokes.Keystrokes;
-import me.arrayofc.keystrokes.KeystrokesConfig;
 import me.arrayofc.keystrokes.keystroke.Keystroke;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.toasts.SystemToast;
@@ -25,9 +24,6 @@ import java.util.Map;
  */
 public class HudManager {
 
-    // The current scaling of the HUD
-    private static double hudScale;
-
     // Main class instance
     private final Keystrokes keystrokes;
 
@@ -46,9 +42,6 @@ public class HudManager {
      * Registers the saved HUD overlays, and registers the default one if necessary.
      */
     public void initialize() {
-        // set the scaling of the HUD
-        setHudScale(KeystrokesConfig.HUD_SCALE_MULTIPLIER.get());
-
         // if the directory doesn't exist, we'll need to create it
         if (Files.notExists(this.hudFile)) {
             try {
@@ -109,6 +102,8 @@ public class HudManager {
      * @param overlayHud The overlay hud to add.
      */
     public void registerOverlay(OverlayHud overlayHud) {
+        overlayHud.getAllKeystrokes().forEach(keystroke -> keystroke.setOwningOverlay(overlayHud.getName()));
+
         this.overlayHuds.add(overlayHud);
     }
 
@@ -118,9 +113,13 @@ public class HudManager {
      * @param rows        The rows for this HUD.
      * @param hudPosition The location for this HUD.
      */
-    public void registerOverlay(String name, LinkedHashMap<Keystroke.Row.RowType, List<Keystroke.Row>> rows, HudPosition hudPosition, boolean custom) {
+    public OverlayHud registerOverlay(String name, LinkedHashMap<Keystroke.Row.RowType, List<Keystroke.Row>> rows, HudPosition hudPosition, boolean custom) {
         OverlayHud overlayHud = new OverlayHud(name, rows, hudPosition, custom);
+        overlayHud.getAllKeystrokes().forEach(keystroke -> keystroke.setOwningOverlay(overlayHud.getName()));
+
         this.overlayHuds.add(overlayHud);
+
+        return overlayHud;
     }
 
     /**
@@ -251,16 +250,10 @@ public class HudManager {
     }
 
     /**
-     * Sets and stores the current scale multiplier before setting the configuration value.
+     * Returns the default Overlay HUD.
      */
-    public static void setHudScale(double scaling) {
-        HudManager.hudScale = scaling;
-    }
-
-    /**
-     * Returns the current scaling of the HUD.
-     */
-    public static double getScale() {
-        return hudScale;
+    public OverlayHud getDefaultOverlay() {
+        return this.overlayHuds.stream().filter(hud -> !hud.isCustom()).findFirst()
+                .orElseGet(() -> this.keystrokes.getKeystrokeRegistry().initializeDefault());
     }
 }

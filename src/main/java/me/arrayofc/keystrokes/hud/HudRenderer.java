@@ -11,14 +11,10 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.DialogTexts;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.button.Button;
-import net.minecraft.client.settings.SliderPercentageOption;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.util.text.TranslationTextComponent;
 
 import javax.annotation.Nonnull;
 import java.awt.*;
-import java.text.DecimalFormat;
 import java.util.List;
 import java.util.Map;
 
@@ -33,9 +29,6 @@ public class HudRenderer extends Screen {
     // Main class instance
     private final Keystrokes keystrokes;
 
-    // The slider bar for scaling the HUD
-    private SliderPercentageOption scaleSlider;
-
     // The current overlay hud we're dragging
     private OverlayHud dragging = null;
 
@@ -45,21 +38,6 @@ public class HudRenderer extends Screen {
     public HudRenderer(Keystrokes keystrokes) {
         super(new TranslationTextComponent(""));
         this.keystrokes = keystrokes;
-    }
-
-    /**
-     * Initializes the HUD renderer class.
-     */
-    public void initialize() {
-        // initialize the slider bar
-        this.scaleSlider = new SliderPercentageOption("", 1D, 3D, 0.1F,
-                (s) -> HudManager.getScale(),
-                (s, o) -> {
-                    // consumer is invoked when the slider receives an update
-                    HudManager.setHudScale(MathHelper.clamp(o, 1D, 3D));
-                    this.rescale(HudManager.getScale());
-                },
-                (s, o) -> new StringTextComponent("HUD Scale: " + DecimalFormat.getInstance().format(HudManager.getScale())));
     }
 
     /**
@@ -74,8 +52,6 @@ public class HudRenderer extends Screen {
             // update the hud positioning in the config
             this.keystrokes.getHudManager().getOverlayHuds().forEach(overlayHud -> this.keystrokes.getHudManager().saveOverlay(overlayHud));
         }));
-
-        super.addButton(this.scaleSlider.createWidget(Minecraft.getInstance().gameSettings, super.width / 2 - 100, 50, 200));
     }
 
     /**
@@ -91,6 +67,8 @@ public class HudRenderer extends Screen {
         this.renderGrid(matrixStack);
         // render the screen title
         drawCenteredString(matrixStack, super.font, Translations.POSITION_LABEL, super.width / 2, 20, 16777215);
+        drawCenteredString(matrixStack, super.font, Translations.GRID_SCREEN_SIZE_TITLE, super.width / 2, 50, 16777215);
+        drawCenteredString(matrixStack, super.font, Translations.GRID_SCREEN_DRAG_TITLE, super.width / 2, 65, 16777215);
         // we'll need to render the overlays as well as we're now in a screen
         this.renderScreenOverlays();
         // renders the buttons added to this screen
@@ -122,11 +100,15 @@ public class HudRenderer extends Screen {
 
         for (OverlayHud overlayHud : this.keystrokes.getHudManager().getOverlayHuds()) {
             final HudPosition hudPosition = overlayHud.getHudPosition();
+
+            // make it easier to see which HUD is being dragged
+            final int color = (overlayHud.isDragMode() ? Color.GREEN : Color.WHITE).getRGB();
+
             // Render the lines around the HUD
-            RenderUtil.hLine(matrixStack, hudPosition.getX() - 1, hudPosition.getX() + hudPosition.getWidth() - 2, hudPosition.getY() + 1, Color.WHITE.getRGB());
-            RenderUtil.hLine(matrixStack, hudPosition.getX() - 1, hudPosition.getX() + hudPosition.getWidth() - 2, hudPosition.getY() + hudPosition.getHeight() - 1, Color.WHITE.getRGB());
-            RenderUtil.vLine(matrixStack, hudPosition.getX() - 1, hudPosition.getY(), hudPosition.getY() + hudPosition.getHeight(), Color.WHITE.getRGB());
-            RenderUtil.vLine(matrixStack, hudPosition.getX() + hudPosition.getWidth() - 1, hudPosition.getY(), hudPosition.getY() + hudPosition.getHeight(), Color.WHITE.getRGB());
+            RenderUtil.hLine(matrixStack, hudPosition.getX() - 1, hudPosition.getX() + hudPosition.getWidth() - 2, hudPosition.getY() + 1, color);
+            RenderUtil.hLine(matrixStack, hudPosition.getX() - 1, hudPosition.getX() + hudPosition.getWidth() - 2, hudPosition.getY() + hudPosition.getHeight() - 1, color);
+            RenderUtil.vLine(matrixStack, hudPosition.getX() - 1, hudPosition.getY(), hudPosition.getY() + hudPosition.getHeight(), color);
+            RenderUtil.vLine(matrixStack, hudPosition.getX() + hudPosition.getWidth() - 1, hudPosition.getY(), hudPosition.getY() + hudPosition.getHeight(), color);
         }
     }
 
@@ -173,10 +155,10 @@ public class HudRenderer extends Screen {
                     for (int k = 0; k < row.getKeystrokes().length; k++) {
                         Keystroke keystroke = row.getKeystrokes()[k];
                         // render keystroke if it's not a barrier
-                        if (!keystroke.isBarrier()) keystroke.render();
+                        if (!keystroke.isBarrier()) keystroke.render(overlay);
 
                         // increment the x offset for the keystroke next to this
-                        double xOffset = keystroke.getWidth() + (rowEntry.getKey() == Keystroke.Row.RowType.MOUSE ? 2 : 1.5) * HudManager.getScale();
+                        double xOffset = keystroke.getWidth() + (rowEntry.getKey() == Keystroke.Row.RowType.MOUSE ? 2 : 1.5) * overlay.getScale();
 
                         // increment the count of the width of the overlay
                         if (!countedWidth) currentWidth += xOffset;
@@ -207,7 +189,7 @@ public class HudRenderer extends Screen {
             // set the width and height of the overlay, in case it has changed
             hudPosition.setWidth(currentWidth);
             // subtract the last offset from the width and height
-            hudPosition.setHeight(currentHeight - 1 + ((int) HudManager.getScale()));
+            hudPosition.setHeight(currentHeight - 1 + ((int) overlay.getScale()));
 
             // finally pop the matrix from the first push
             GlStateManager.popMatrix();
@@ -279,18 +261,16 @@ public class HudRenderer extends Screen {
      *
      * @param scale The new scale.
      */
-    public void rescale(double scale) {
-        for (OverlayHud hud : this.keystrokes.getHudManager().getOverlayHuds()) {
-            for (Map.Entry<Keystroke.Row.RowType, List<Keystroke.Row>> entry : hud.getRowMap().entrySet()) {
-                for (Keystroke.Row row : entry.getValue()) {
-                    for (Keystroke keystroke : row.getKeystrokes()) {
-                        keystroke.setHeight(Keystroke.DEFAULT_KEY_SCALE.get(keystroke.getKeyType()).getLeft() * scale);
-                        if (keystroke.isDefault() || keystroke.getTextContent().length() <= 3) {
-                            keystroke.setWidth(Keystroke.DEFAULT_KEY_SCALE.get(keystroke.getKeyType()).getRight() * scale);
-                        } else {
-                            keystroke.updateTextWidth();
-                            keystroke.setWidth(keystroke.getTextWidth() + 5 * scale);
-                        }
+    public void rescale(OverlayHud hud, double scale) {
+        for (Map.Entry<Keystroke.Row.RowType, List<Keystroke.Row>> entry : hud.getRowMap().entrySet()) {
+            for (Keystroke.Row row : entry.getValue()) {
+                for (Keystroke keystroke : row.getKeystrokes()) {
+                    keystroke.setHeight(Keystroke.DEFAULT_KEY_SCALE.get(keystroke.getKeyType()).getLeft() * scale);
+                    if (keystroke.isDefault() || keystroke.getTextContent().length() <= 3) {
+                        keystroke.setWidth(Keystroke.DEFAULT_KEY_SCALE.get(keystroke.getKeyType()).getRight() * scale);
+                    } else {
+                        keystroke.updateTextWidth();
+                        keystroke.setWidth(keystroke.getTextWidth() + 5 * scale);
                     }
                 }
             }
@@ -364,15 +344,29 @@ public class HudRenderer extends Screen {
     }
 
     @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
+        OverlayHud selected = this.dragging == null ? this.keystrokes.getHudManager().getClickedHud(mouseX, mouseY) : this.dragging;
+        if (selected == null) return false;
+
+        final double del = delta * 0.1;
+        double diff = selected.getScale() + del;
+        // scale limits
+        if (diff <= 1 || diff >= 3) return false;
+
+        selected.setScale(diff);
+        this.rescale(selected, diff);
+        return false;
+    }
+
+    @Override
     public void onClose() {
         if (this.dragging != null) {
             this.dragging.setDragMode(false);
             this.dragging = null;
         }
 
-        // when the screen is closed we'll save the overlay huds & update the configuration with the scale
+        // when the screen is closed we'll save the overlay huds
         this.keystrokes.getHudManager().getOverlayHuds().forEach(overlayHud -> this.keystrokes.getHudManager().saveOverlay(overlayHud));
-        KeystrokesConfig.HUD_SCALE_MULTIPLIER.set(HudManager.getScale());
-        KeystrokesConfig.CLIENT_CONFIG.save();
+        this.keystrokes.getHudManager().getOverlayHuds().forEach(hud -> this.keystrokes.getHudManager().saveOverlay(hud));
     }
 }

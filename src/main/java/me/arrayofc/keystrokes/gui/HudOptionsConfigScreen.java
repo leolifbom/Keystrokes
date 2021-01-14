@@ -92,4 +92,9 @@ public class HudOptionsConfigScreen extends AbstractConfigScreen {
 
         super.render(matrixStack, mouseX, mouseY, partialTicks);
     }
+
+    @Override
+    public void onClose() {
+        KeystrokesConfig.CLIENT_CONFIG.save();
+    }
 }

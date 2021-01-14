@@ -73,9 +73,7 @@ public class Keystrokes {
      * When fired, we initialize the color and keystroke hud with values from the configuration.
      */
     public void onLoadComplete(final FMLLoadCompleteEvent event) {
-        this.colorManager.initialize();
         this.hudManager.initialize();
-        this.hudRenderer.initialize();
         logger.info("Mod loading complete.");
     }
 

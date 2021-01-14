@@ -39,8 +39,8 @@ public final class Translations {
     public static final ITextComponent HUD_TYPE_LABEL = new TranslationTextComponent("screen.hud-key-look-type-label");
     public static final ITextComponent HUD_TYPE_TOOLTIP = new TranslationTextComponent("screen.hud-key-look-type-tooltip");
 
-    public static final ITextComponent COLOR_LABEL = new TranslationTextComponent("screen.color-label");
-    public static final ITextComponent COLOR_TOOLTIP = new TranslationTextComponent("screen.color-tooltip");
+    public static final ITextComponent COLOR_SYNC_LABEL = new TranslationTextComponent("screen.color-sync-label");
+    public static final ITextComponent COLOR_SYNC_TOOLTIP = new TranslationTextComponent("screen.color-sync-tooltip");
 
     public static final ITextComponent RAINBOW_LABEL = new TranslationTextComponent("screen.rainbow-label");
     public static final ITextComponent RAINBOW_TOOLTIP = new TranslationTextComponent("screen.rainbow-tooltip");
@@ -50,7 +50,8 @@ public final class Translations {
 
     public static final ITextComponent COLOR_SCREEN_TITLE = new TranslationTextComponent("colorscreen.title");
     public static final ITextComponent COLOR_PREVIEW_TITLE = new TranslationTextComponent("colorscreen.preview.title");
-    public static final ITextComponent COLOR_SCREEN_NOT_SHOW = new TranslationTextComponent("colorscreen.not-show.title");
+    public static final ITextComponent COLOR_SCREEN_NOT_SHOW_TITLE = new TranslationTextComponent("colorscreen.not-show.title");
+    public static final ITextComponent COLOR_SCREEN_SYNC_ENABLED_TITLE = new TranslationTextComponent("colorscreen.sync-enabled.title");
 
     public static final ITextComponent COLOR_SCREEN_TEXT_LABEL = new TranslationTextComponent("colorscreen.text-label");
     public static final ITextComponent COLOR_SCREEN_TEXT_TOOLTIP = new TranslationTextComponent("colorscreen.text-tooltip");
@@ -65,9 +66,14 @@ public final class Translations {
     public static final ITextComponent KEY_SCREEN_NEW_BINDING_TOOLTIP = new TranslationTextComponent("keyscreen.new-custom-overlay-tooltip");
     public static final ITextComponent KEY_SCREEN_DELETE_OVERLAY_LABEL = new TranslationTextComponent("keyscreen.delete-overlay-label");
     public static final ITextComponent KEY_SCREEN_DELETE_OVERLAY_TOOLTIP = new TranslationTextComponent("keyscreen.delete-overlay-tooltip");
+    public static final ITextComponent KEY_SCREEN_COLOR_OVERLAY_LABEL = new TranslationTextComponent("keyscreen.color-overlay-label");
+    public static final ITextComponent KEY_SCREEN_COLOR_OVERLAY_TOOLTIP = new TranslationTextComponent("keyscreen.color-overlay-tooltip");
     public static final ITextComponent KEY_SCREEN_INPUT_TITLE = new TranslationTextComponent("keyscreen.key-input-title");
     public static final ITextComponent KEY_SCREEN_INPUT_INVALID = new TranslationTextComponent("keyscreen.key-input-invalid");
     public static final ITextComponent KEY_SCREEN_INPUT_EXISTING = new TranslationTextComponent("keyscreen.key-input-existing");
+
+    public static final ITextComponent GRID_SCREEN_SIZE_TITLE = new TranslationTextComponent("gridscreen.size.title");
+    public static final ITextComponent GRID_SCREEN_DRAG_TITLE = new TranslationTextComponent("gridscreen.drag.title");
 
     public static final ITextComponent TOAST_ERROR_TITLE = new TranslationTextComponent("toasts.error");
     public static final ITextComponent TOAST_INVALID_HEX = new TranslationTextComponent("toasts.colorscreen.invalid-hex");
