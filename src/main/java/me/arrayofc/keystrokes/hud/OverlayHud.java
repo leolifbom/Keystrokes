@@ -5,8 +5,7 @@ import com.google.common.collect.Maps;
 import me.arrayofc.keystrokes.color.ColorTab;
 import me.arrayofc.keystrokes.keystroke.Keystroke;
 
-import java.util.Arrays;
-import java.util.LinkedHashMap;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 
@@ -21,10 +20,10 @@ public class OverlayHud {
     private final String name;
 
     // A map containing the rows for the HUD
-    private final LinkedHashMap<Keystroke.Row.RowType, List<Keystroke.Row>> rowMap;
+    private final EnumMap<OverlayHud.Section, List<Keystroke.Row>> rowMap;
 
     // The colors for this overlay hud
-    private final Map<ColorTab, int[]> rgbValues;
+    private final EnumMap<ColorTab, int[]> rgbValues;
 
     // Whether or not we're currently dragging the HUD
     private boolean dragMode = false;
@@ -41,10 +40,11 @@ public class OverlayHud {
     // Whether or not the user created this themselves or it's a default overlay
     private final boolean custom;
 
-    public OverlayHud(String name, LinkedHashMap<Keystroke.Row.RowType, List<Keystroke.Row>> rowMap, HudPosition hudPosition, boolean custom) {
+    public OverlayHud(String name, EnumMap<OverlayHud.Section, List<Keystroke.Row>> rowMap, HudPosition hudPosition, boolean custom) {
         this.name = name;
         this.rowMap = rowMap;
-        this.rgbValues = Maps.newHashMap();
+
+        this.rgbValues = Maps.newEnumMap(ColorTab.class);
         this.rgbValues.put(ColorTab.TEXT, new int[]{255, 255, 255});
         this.rgbValues.put(ColorTab.CLICK, new int[]{71, 71, 71});
         this.rgbValues.put(ColorTab.HUD, new int[]{48, 48, 48});
@@ -89,7 +89,7 @@ public class OverlayHud {
     /**
      * Returns the map with the keystrokes.
      */
-    public LinkedHashMap<Keystroke.Row.RowType, List<Keystroke.Row>> getRowMap() {
+    public EnumMap<OverlayHud.Section, List<Keystroke.Row>> getRowMap() {
         return this.rowMap;
     }
 
@@ -131,7 +131,7 @@ public class OverlayHud {
     /**
      * Returns the R, G & B values for this overlay hud.
      */
-    public Map<ColorTab, int[]> getRgbValues() {
+    public EnumMap<ColorTab, int[]> getRgbValues() {
         return this.rgbValues;
     }
 
@@ -155,12 +155,19 @@ public class OverlayHud {
     public List<Keystroke> getAllKeystrokes() {
         List<Keystroke> keystrokes = Lists.newArrayList();
 
-        for (Map.Entry<Keystroke.Row.RowType, List<Keystroke.Row>> entry : this.rowMap.entrySet()) {
+        for (Map.Entry<Section, List<Keystroke.Row>> entry : this.rowMap.entrySet()) {
             for (Keystroke.Row row : entry.getValue()) {
-                keystrokes.addAll(Arrays.asList(row.getKeystrokes()));
+                keystrokes.addAll(row.getKeystrokes());
             }
         }
 
         return keystrokes;
+    }
+
+    /**
+     * Represents a section in an {@link OverlayHud}.
+     */
+    public enum Section {
+        KEY, MOUSE, SPACEBAR
     }
 }

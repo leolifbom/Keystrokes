@@ -9,6 +9,7 @@ import me.arrayofc.keystrokes.color.ColorManager;
 import me.arrayofc.keystrokes.color.ColorTab;
 import me.arrayofc.keystrokes.gui.MainConfigScreen;
 import me.arrayofc.keystrokes.hud.OverlayHud;
+import me.arrayofc.keystrokes.util.MouseHandler;
 import me.arrayofc.keystrokes.util.Strings;
 import me.arrayofc.keystrokes.util.Translations;
 import net.minecraft.client.Minecraft;
@@ -20,6 +21,7 @@ import org.lwjgl.opengl.GL11;
 import javax.annotation.Nullable;
 import java.awt.*;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 @SuppressWarnings("deprecation")
@@ -56,7 +58,7 @@ public class Keystroke {
     // The overlay that this keystroke belongs to
     private String owningOverlay;
 
-    public Keystroke(KeyBinding keyBinding, KeyType type, boolean isDefault) {
+    private Keystroke(KeyBinding keyBinding, KeyType type, boolean isDefault) {
         this.keyBindingDescription = keyBinding == null ? "BARRIER" : keyBinding.getKeyDescription();
         this.keyType = type;
         this.height = DEFAULT_KEY_SCALE.get(this.keyType).getLeft();
@@ -71,6 +73,17 @@ public class Keystroke {
             this.textWidth = Minecraft.getInstance().fontRenderer.getStringWidth(this.getTextContent());
             this.width = this.textWidth + 5;
         }
+    }
+
+    /**
+     * Creates a new keystroke object.
+     *
+     * @param bind  The keybind of this keystroke.
+     * @param type  The {@link KeyType} of this keystroke.
+     * @param def   Whether this is a default keystroke.
+     */
+    public static Keystroke newKeystroke(KeyBinding bind, KeyType type, boolean def) {
+        return new Keystroke(bind, type, def);
     }
 
     /**
@@ -269,7 +282,7 @@ public class Keystroke {
             final FontRenderer font = Minecraft.getInstance().fontRenderer;
             // the text to display on the 1st and 2nd row
             final String firstRow = left ? "LMB" : "RMB";
-            final String secondRow = Keystrokes.getInstance().getKeystrokeRegistry().getCPS(left) + " CPS";
+            final String secondRow = (left ? MouseHandler.getLeft().getCPS() : MouseHandler.getRight().getCPS()) + " CPS";
 
             // the text width of the 1st and 2nd row
             double firstRowTextWidth = font.getStringWidth(firstRow) * hud.getScale();
@@ -330,7 +343,7 @@ public class Keystroke {
     private String getOnClickText(boolean left) {
         if (KeystrokesConfig.SHOW_CPS.get() == KeystrokesConfig.CpsType.NEVER) return left ? "LMB" : "RMB";
 
-        int cps = Keystrokes.getInstance().getKeystrokeRegistry().getCPS(left);
+        int cps = (left ? MouseHandler.getLeft().getCPS() : MouseHandler.getRight().getCPS());
         if (cps == 0) {
             return left ? "LMB" : "RMB";
         } else {
@@ -400,16 +413,16 @@ public class Keystroke {
      * Holds the different {@link Keystroke} objects to display for each row in the HUD.
      */
     public static class Row {
-        private final Keystroke[] keystrokes;
+        private final List<Keystroke> keystrokes;
 
-        public Row(Keystroke[] keystrokes) {
+        public Row(List<Keystroke> keystrokes) {
             this.keystrokes = keystrokes;
         }
 
         /**
          * Returns the amount of {@link Keystroke} on this row.
          */
-        public Keystroke[] getKeystrokes() {
+        public List<Keystroke> getKeystrokes() {
             return this.keystrokes;
         }
 
@@ -417,15 +430,8 @@ public class Keystroke {
          * Returns the height gap for the next row in the HUD.
          */
         public double getRowHeightOffset() {
-            return Arrays.stream(this.keystrokes).findFirst().map(keystroke -> keystroke.getHeight() + 1.5 * keystroke.getScale())
+            return this.keystrokes.stream().findFirst().map(keystroke -> keystroke.getHeight() + 1.5 * keystroke.getScale())
                     .orElseThrow(() -> new RuntimeException("Keys on row misses height"));
-        }
-
-        /**
-         * Represents the type of a {@link Row}
-         */
-        public enum RowType {
-            KEY, MOUSE, SPACEBAR
         }
     }
 }

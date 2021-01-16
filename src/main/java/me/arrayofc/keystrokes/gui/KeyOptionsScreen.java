@@ -209,7 +209,7 @@ public class KeyOptionsScreen extends Screen {
          */
         public void acceptKeybinding(KeyBinding keyBinding) {
             // Create the keystroke HUD
-            this.keystrokes.getKeystrokeRegistry().fromKey(keyBinding);
+            this.keystrokes.getHudManager().createOverlayFromKeybind(keyBinding);
             // display previous window
             Minecraft.getInstance().displayGuiScreen(this.lastScreen);
         }

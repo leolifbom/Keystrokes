@@ -2,13 +2,13 @@ package me.arrayofc.keystrokes;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.InstanceCreator;
 import me.arrayofc.keystrokes.color.ColorManager;
 import me.arrayofc.keystrokes.command.ModCommand;
 import me.arrayofc.keystrokes.gui.ColorOptionsConfigScreen;
 import me.arrayofc.keystrokes.gui.MainConfigScreen;
 import me.arrayofc.keystrokes.hud.HudManager;
 import me.arrayofc.keystrokes.hud.HudRenderer;
-import me.arrayofc.keystrokes.keystroke.KeystrokeRegistry;
 import net.minecraft.client.Minecraft;
 import net.minecraftforge.client.event.ClientChatEvent;
 import net.minecraftforge.common.MinecraftForge;
@@ -24,6 +24,10 @@ import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
+import java.util.EnumMap;
+
 @Mod("keystrokesmod")
 public class Keystrokes {
 
@@ -34,12 +38,16 @@ public class Keystrokes {
     private static final Logger logger = LogManager.getLogger();
 
     // A static GSON instance for overlay hud serialization
-    public static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+    public static final Gson GSON = new GsonBuilder().setPrettyPrinting()
+            // type adapter for EnumMap deserialization
+            .registerTypeAdapter(EnumMap.class, (InstanceCreator<EnumMap<?, ?>>) type -> {
+                Type[] types = (((ParameterizedType) type).getActualTypeArguments());
+                return new EnumMap((Class<?>) types[0]);
+            }).create();
 
     private final ColorManager colorManager;
     private final HudManager hudManager;
     private final HudRenderer hudRenderer;
-    private final KeystrokeRegistry keystrokeRegistry;
     private final MainConfigScreen mainConfigScreen;
 
     private boolean menuOpen = false;
@@ -55,7 +63,6 @@ public class Keystrokes {
 
         this.colorManager = new ColorManager(this);
         this.hudManager = new HudManager(this);
-        this.keystrokeRegistry = new KeystrokeRegistry(this);
 
         this.mainConfigScreen = new MainConfigScreen(this);
         ModLoadingContext.get().registerExtensionPoint(ExtensionPoint.CONFIGGUIFACTORY, () -> (mc, screen) -> this.mainConfigScreen);
@@ -152,13 +159,6 @@ public class Keystrokes {
      */
     public HudManager getHudManager() {
         return this.hudManager;
-    }
-
-    /**
-     * Returns the class that creates new keystrokes.
-     */
-    public KeystrokeRegistry getKeystrokeRegistry() {
-        return this.keystrokeRegistry;
     }
 
     /**

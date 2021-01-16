@@ -133,12 +133,12 @@ public class HudRenderer extends Screen {
             boolean countedWidth = false;
 
             // loop the lists of rows in this overlay
-            for (Map.Entry<Keystroke.Row.RowType, List<Keystroke.Row>> rowEntry : overlay.getRowMap().entrySet()) {
+            for (Map.Entry<OverlayHud.Section, List<Keystroke.Row>> rowEntry : overlay.getRowMap().entrySet()) {
                 if (!overlay.isCustom()) {
                     // skip the hud components that are disabled in the settings
-                    if (rowEntry.getKey() == Keystroke.Row.RowType.KEY && !KeystrokesConfig.SHOW_MOVEMENT.get()) continue;
-                    if (rowEntry.getKey() == Keystroke.Row.RowType.MOUSE && !KeystrokesConfig.SHOW_MOUSE.get()) continue;
-                    if (rowEntry.getKey() == Keystroke.Row.RowType.SPACEBAR && !KeystrokesConfig.SHOW_SPACEBAR.get()) continue;
+                    if (rowEntry.getKey() == OverlayHud.Section.KEY && !KeystrokesConfig.SHOW_MOVEMENT.get()) continue;
+                    if (rowEntry.getKey() == OverlayHud.Section.MOUSE && !KeystrokesConfig.SHOW_MOUSE.get()) continue;
+                    if (rowEntry.getKey() == OverlayHud.Section.SPACEBAR && !KeystrokesConfig.SHOW_SPACEBAR.get()) continue;
                 }
 
                 // now loop the rows in the list
@@ -152,13 +152,13 @@ public class HudRenderer extends Screen {
                     GlStateManager.pushMatrix();
 
                     // loop the keystrokes on this row
-                    for (int k = 0; k < row.getKeystrokes().length; k++) {
-                        Keystroke keystroke = row.getKeystrokes()[k];
+                    for (int k = 0; k < row.getKeystrokes().size(); k++) {
+                        Keystroke keystroke = row.getKeystrokes().get(k);
                         // render keystroke if it's not a barrier
                         if (!keystroke.isBarrier()) keystroke.render(overlay);
 
                         // increment the x offset for the keystroke next to this
-                        double xOffset = keystroke.getWidth() + (rowEntry.getKey() == Keystroke.Row.RowType.MOUSE ? 2 : 1.5) * overlay.getScale();
+                        double xOffset = keystroke.getWidth() + (rowEntry.getKey() == OverlayHud.Section.MOUSE ? 2 : 1.5) * overlay.getScale();
 
                         // increment the count of the width of the overlay
                         if (!countedWidth) currentWidth += xOffset;
@@ -262,7 +262,7 @@ public class HudRenderer extends Screen {
      * @param scale The new scale.
      */
     public void rescale(OverlayHud hud, double scale) {
-        for (Map.Entry<Keystroke.Row.RowType, List<Keystroke.Row>> entry : hud.getRowMap().entrySet()) {
+        for (Map.Entry<OverlayHud.Section, List<Keystroke.Row>> entry : hud.getRowMap().entrySet()) {
             for (Keystroke.Row row : entry.getValue()) {
                 for (Keystroke keystroke : row.getKeystrokes()) {
                     keystroke.setHeight(Keystroke.DEFAULT_KEY_SCALE.get(keystroke.getKeyType()).getLeft() * scale);
@@ -281,7 +281,7 @@ public class HudRenderer extends Screen {
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (button == 0) { // (left click mouse)
             // check if there's a hud overlay at this clicked location
-            OverlayHud clicked = this.keystrokes.getHudManager().getClickedHud(mouseX, mouseY);
+            OverlayHud clicked = this.keystrokes.getHudManager().getClickedOverlay(mouseX, mouseY);
             if (clicked != null) {
                 // if so, we'll set it into drag mode
                 clicked.setDragMode(true);
@@ -345,7 +345,7 @@ public class HudRenderer extends Screen {
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
-        OverlayHud selected = this.dragging == null ? this.keystrokes.getHudManager().getClickedHud(mouseX, mouseY) : this.dragging;
+        OverlayHud selected = this.dragging == null ? this.keystrokes.getHudManager().getClickedOverlay(mouseX, mouseY) : this.dragging;
         if (selected == null) return false;
 
         final double del = delta * 0.1;

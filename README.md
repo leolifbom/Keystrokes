@@ -3,6 +3,8 @@ A highly customizable Keystrokes Mod for Minecraft Forge 1.16.4.
 
 Settings are accessible with the `/keystrokes` command, where users may change colors, add in custom key overlays and much more.
 
+**This mod will not be actively maintained.**
+
 ## Built With
 * [Minecraft Forge](https://mcforge.readthedocs.io/en/latest/gettingstarted/) 
 
